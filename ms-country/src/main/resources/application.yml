@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: ms-country
+server:
+  port: 8081
