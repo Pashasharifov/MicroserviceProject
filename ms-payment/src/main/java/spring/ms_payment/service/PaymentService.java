@@ -2,18 +2,24 @@ package spring.ms_payment.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import spring.ms_payment.client.CountryClient;
 import spring.ms_payment.entity.Payment;
 import spring.ms_payment.exception.NotFoundException;
 import spring.ms_payment.mapper.PaymentMapper;
+import spring.ms_payment.model.request.PaymentCriteria;
 import spring.ms_payment.model.request.PaymentRequest;
+import spring.ms_payment.model.response.PageablePaymentResponse;
 import spring.ms_payment.model.response.PaymentResponse;
 import spring.ms_payment.repository.PaymentRepository;
+import spring.ms_payment.service.specification.PaymentSpecification;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.tomcat.util.net.openssl.ciphers.Encryption.DES;
 import static spring.ms_payment.mapper.PaymentMapper.mapEntityToResponse;
 import static spring.ms_payment.mapper.PaymentMapper.mapRequestToEntity;
 import static spring.ms_payment.model.constant.ExceptionConstants.COUNTRY_NOT_FOUND_CODE;
@@ -35,10 +41,27 @@ public class PaymentService {
         paymentRepository.save(mapRequestToEntity(request));
         log.info("savePayment.success");
     }
-    public List<PaymentResponse> getAllPayments(){
-        return paymentRepository.findAll()
+    public PageablePaymentResponse
+//    List<PaymentResponse>
+    getAllPayments(int page, int count, PaymentCriteria paymentCriteria){
+        log.info("getAllPayments.started");
+        var pageable = PageRequest.of(page, count, Sort.by(Sort.Direction.DESC, "id"));
+        var pageablePayments = paymentRepository.findAll(new PaymentSpecification(paymentCriteria), pageable);
+        var payments = pageablePayments.getContent()
                 .stream()
-                .map(PaymentMapper::mapEntityToResponse).collect(Collectors.toList());
+                .map(PaymentMapper::mapEntityToResponse).toList();
+        log.info("getAllPayments.success");
+
+        return PageablePaymentResponse
+                .builder()
+                .payments(payments)
+                .hasNextPage(pageablePayments.hasNext())
+                .totalElements(pageablePayments.getTotalElements())
+                .totalPages(pageablePayments.getTotalPages())
+                .build();
+//        return paymentRepository.findAll()
+//                .stream()
+//                .map(PaymentMapper::mapEntityToResponse).collect(Collectors.toList());
     }
 
     public PaymentResponse getPaymentById(Long id){
@@ -50,6 +73,11 @@ public class PaymentService {
 
     public void updatePayment(Long id, PaymentRequest request){
         log.info("updatePayment.start id: {}", id);
+        countryClient.getAllAvailableCountries(request.getCurrency())
+                .stream()
+                .filter(country -> country.getRemainingLimit().compareTo(request.getAmount()) > 0)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException(String.format(COUNTRY_NOT_FOUND_MESSAGE, request.getAmount(), request.getCurrency()), COUNTRY_NOT_FOUND_CODE ));
         Payment payment = fetchPaymentIfExist(id);
         payment.setAmount(request.getAmount());
         payment.setDescription(request.getDescription());

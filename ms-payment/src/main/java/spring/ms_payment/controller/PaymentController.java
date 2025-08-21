@@ -2,7 +2,9 @@ package spring.ms_payment.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import spring.ms_payment.model.request.PaymentCriteria;
 import spring.ms_payment.model.request.PaymentRequest;
+import spring.ms_payment.model.response.PageablePaymentResponse;
 import spring.ms_payment.model.response.PaymentResponse;
 import spring.ms_payment.service.PaymentService;
 
@@ -23,8 +25,12 @@ public class PaymentController {
     }
 
     @GetMapping("/all")
-    public List<PaymentResponse> getAllPayments(){
-        return paymentService.getAllPayments();
+    public PageablePaymentResponse getAllPayments(@RequestParam int page,
+                                                  @RequestParam int count,
+                                                  PaymentCriteria paymentCriteria){
+        System.out.println(page + "count : " + count + "p :" + paymentCriteria);
+        System.out.println(paymentService.getAllPayments(page, count, paymentCriteria));
+        return paymentService.getAllPayments(page, count, paymentCriteria);
     }
 
     @GetMapping("/{id}")
