@@ -1,13 +1,17 @@
 package spring.ms_payment.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.springframework.http.HttpStatus.*;
 import static spring.ms_payment.model.constant.ExceptionConstants.*;
 
 @Slf4j
@@ -25,5 +29,16 @@ public class ErrorHandler {
         log.error("Not found exception : ", exception);
         return new ExceptionResponse(exception.getCode(), exception.getMessage());
 
+    }
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public Map<String, String> handleValidation(MethodArgumentNotValidException exception){
+        Map<String, String> errors = new HashMap<>();
+        exception.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 }

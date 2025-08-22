@@ -1,5 +1,6 @@
 package spring.ms_payment.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import spring.ms_payment.model.request.PaymentCriteria;
@@ -20,7 +21,7 @@ public class PaymentController {
 
     @PostMapping
     @ResponseStatus(CREATED)
-    public void savePayment(@RequestBody PaymentRequest request){
+    public void savePayment(@Valid @RequestBody PaymentRequest request){
         paymentService.savePayment(request);
     }
 
